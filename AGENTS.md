@@ -26,7 +26,7 @@ When behavior changes, update:
 - `README.md`
 - `action.yml`
 - tests under `tests/`
-- regenerate `dist/index.cjs` with `pnpm run build`
+- regenerate `dist/index.cjs` with `pnpm run build` on the release tag
 
 ## Verification
 
@@ -35,7 +35,7 @@ pnpm run validate
 pnpm run build
 ```
 
-Integration jobs in `.github/workflows/ci.yml` cover Windows compilation scenarios.
+CI builds and verifies the bundle; it does not require committing `dist/index.cjs` on ordinary PRs. Integration jobs download the CI-built bundle before `uses: ./`.
 
 ## Release
 
