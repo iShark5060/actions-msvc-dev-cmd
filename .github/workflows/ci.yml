@@ -56,6 +56,7 @@ jobs:
           name: action-bundle
           path: dist/index.cjs
           if-no-files-found: error
+          retention-days: 1
 
   integration:
     name: integration (${{ matrix.name }})
