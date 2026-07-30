@@ -51,7 +51,7 @@ jobs:
         run: node --check dist/index.cjs
 
       - name: Upload action bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: action-bundle
           path: dist/index.cjs
@@ -81,7 +81,7 @@ jobs:
           persist-credentials: false
 
       - name: Download action bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: action-bundle
           path: dist
@@ -116,7 +116,7 @@ jobs:
           persist-credentials: false
 
       - name: Download action bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: action-bundle
           path: dist
