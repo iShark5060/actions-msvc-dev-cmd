@@ -5,7 +5,7 @@ import process from 'node:process';
 
 import * as core from '@actions/core';
 
-import { vsversion_to_versionnumber, vsversion_to_year } from './version.js';
+import { isKnownVsVersion, vsversion_to_versionnumber, vsversion_to_year } from './version.js';
 
 const PROGRAM_FILES_X86 = process.env['ProgramFiles(x86)'];
 const PROGRAM_FILES = [process.env['ProgramFiles(x86)'], process.env['ProgramFiles']];
@@ -13,7 +13,7 @@ const PROGRAM_FILES = [process.env['ProgramFiles(x86)'], process.env['ProgramFil
 const EDITIONS = ['Enterprise', 'Professional', 'Community', 'BuildTools'];
 const YEARS = ['2026', '2022', '2019', '2017'];
 
-export { vsversion_to_versionnumber, vsversion_to_year };
+export { isKnownVsVersion, vsversion_to_versionnumber, vsversion_to_year };
 
 const VSWHERE_PATH = `${PROGRAM_FILES_X86}\\Microsoft Visual Studio\\Installer`;
 
@@ -91,6 +91,22 @@ function filterPathValue(pathValue) {
   return paths.filter(unique).join(';');
 }
 
+function isTruthyInput(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  return normalized === 'true' || normalized === '1';
+}
+
+/** Split NAME=value on the first '=' so values containing '=' are preserved. */
+export function splitEnvLine(line) {
+  const eq = line.indexOf('=');
+  if (eq === -1) {
+    return null;
+  }
+  return [line.slice(0, eq), line.slice(eq + 1)];
+}
+
 /** See https://github.com/ilammy/msvc-dev-cmd#inputs */
 export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   if (process.platform != 'win32') {
@@ -118,7 +134,7 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   // Call the configuration batch file and then output *all* the environment variables.
 
   var args = [arch];
-  if (uwp == 'true') {
+  if (isTruthyInput(uwp)) {
     args.push('uwp');
   }
   if (sdk) {
@@ -127,12 +143,24 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   if (toolset) {
     args.push(`-vcvars_ver=${toolset}`);
   }
-  if (spectre == 'true') {
+  if (isTruthyInput(spectre)) {
     args.push('-vcvars_spectre_libs=spectre');
   }
 
-  const vcvars = `"${findVcvarsall(vsversion)}" ${args.join(' ')}`;
+  const vcvarsall = findVcvarsall(vsversion);
+  const vcvars = `"${vcvarsall}" ${args.join(' ')}`;
   core.debug(`vcvars command-line: ${vcvars}`);
+
+  // Derive installation path from the invoked script.
+  // vcvarsall.bat: ...\VC\Auxiliary\Build\vcvarsall.bat → three levels up.
+  // vcbuildtools.bat (VS 2015): use the script directory itself.
+  const installationPath =
+    path.basename(vcvarsall).toLowerCase() === 'vcbuildtools.bat'
+      ? path.dirname(vcvarsall)
+      : path.resolve(path.dirname(vcvarsall), '..', '..', '..');
+  const knownVersion = isKnownVsVersion(vsversion);
+  const resolvedVsVersion = knownVersion ? vsversion_to_versionnumber(vsversion) : '';
+  const resolvedYear = knownVersion ? vsversion_to_year(vsversion) : '';
 
   const cmd_output_string = child_process
     .execSync(`set && cls && ${vcvars} && cls && set`, { shell: 'cmd' })
@@ -162,7 +190,11 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   // Convert old environment lines into a dictionary for easier lookup.
   let old_env_vars = {};
   for (let string of old_environment) {
-    const [name, value] = string.split('=');
+    const parts = splitEnvLine(string);
+    if (!parts) {
+      continue;
+    }
+    const [name, value] = parts;
     old_env_vars[name] = value;
   }
 
@@ -173,10 +205,11 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   for (let string of new_environment) {
     // vsvars.bat likes to print some fluff at the beginning.
     // Skip lines that don't look like environment variables.
-    if (!string.includes('=')) {
+    const parts = splitEnvLine(string);
+    if (!parts) {
       continue;
     }
-    let [name, new_value] = string.split('=');
+    let [name, new_value] = parts;
     let old_value = old_env_vars[name];
     // For new variables "old_value === undefined".
     if (new_value !== old_value) {
@@ -192,6 +225,12 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
     }
   }
   core.endGroup();
+
+  core.setOutput('arch', arch);
+  core.setOutput('vcvarsall', vcvarsall);
+  core.setOutput('installation-path', installationPath);
+  core.setOutput('vs-version', resolvedVsVersion);
+  core.setOutput('vs-year', resolvedYear === resolvedVsVersion ? '' : resolvedYear);
 
   core.info(`Configured Developer Command Prompt`);
 }

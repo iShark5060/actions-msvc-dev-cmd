@@ -1,10 +1,18 @@
 export const VsYearVersion = {
+  2026: '18.0',
   2022: '17.0',
   2019: '16.0',
   2017: '15.0',
   2015: '14.0',
   2013: '12.0',
 };
+
+export function isKnownVsVersion(vsversion) {
+  if (!vsversion) {
+    return false;
+  }
+  return vsversion in VsYearVersion || Object.values(VsYearVersion).includes(vsversion);
+}
 
 export function vsversion_to_versionnumber(vsversion) {
   if (Object.values(VsYearVersion).includes(vsversion)) {
