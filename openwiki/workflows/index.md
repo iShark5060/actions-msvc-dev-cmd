@@ -66,7 +66,7 @@ jobs:
 **Supported Formats**:
 
 - Year: `2019`, `2022`, `2026`
-- Version: `16.0`, `17.0`, `19.0`
+- Version: `16.0`, `17.0`, `18.0`
 - Custom: Any value passed to vswhere `-version` filter
 
 **Usage Example**:

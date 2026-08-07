@@ -15,6 +15,7 @@ The action supports multiple ways to specify Visual Studio versions:
 ```javascript
 // Mapping in src/version.js
 export const VsYearVersion = {
+  2026: '18.0',
   2022: '17.0',
   2019: '16.0',
   2017: '15.0',
@@ -32,7 +33,7 @@ export const VsYearVersion = {
 
 - `16.0` → Visual Studio 2019
 - `17.0` → Visual Studio 2022
-- `19.0` → Visual Studio 2026 (estimated)
+- `18.0` → Visual Studio 2026
 
 #### Discovery Priority
 
