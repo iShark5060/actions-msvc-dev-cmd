@@ -5,7 +5,7 @@
 ![Node](https://img.shields.io/badge/Node-%3E%3D24-339933?logo=node.js&logoColor=white)
 [![Cursor](https://img.shields.io/badge/Cursor-IDE-141414?logo=cursor&logoColor=white)](https://cursor.com)
 
-Configure the Microsoft Visual C++ Developer Command Prompt on Windows runners.
+Load the MSVC Developer Command Prompt on Windows runners so `cl`, `nmake`, and CMake can find the toolchain.
 
 > **Fork notice:** Maintained fork of [ilammy/msvc-dev-cmd](https://github.com/ilammy/msvc-dev-cmd) by ilammy (MIT License).
 
