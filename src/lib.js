@@ -40,7 +40,6 @@ export function findVcvarsall(vsversion) {
     version_pattern = '-latest';
   }
 
-  // If vswhere is available, ask it about the location of the latest Visual Studio.
   let vcvarsPath = findWithVswhere('VC\\Auxiliary\\Build\\vcvarsall.bat', version_pattern);
   if (vcvarsPath && fs.existsSync(vcvarsPath)) {
     core.info(`Found with vswhere: ${vcvarsPath}`);
@@ -48,8 +47,6 @@ export function findVcvarsall(vsversion) {
   }
   core.info('Not found with vswhere');
 
-  // If that does not work, try the standard installation locations,
-  // starting with the latest and moving to the oldest.
   const years = vsversion ? [vsversion_to_year(vsversion)] : YEARS;
   for (const prog_files of PROGRAM_FILES) {
     for (const ver of years) {
@@ -65,7 +62,6 @@ export function findVcvarsall(vsversion) {
   }
   core.info('Not found in standard locations');
 
-  // Special case for Visual Studio 2015 (and maybe earlier), try it out too.
   vcvarsPath = `${PROGRAM_FILES_X86}\\Microsoft Visual C++ Build Tools\\vcbuildtools.bat`;
   if (fs.existsSync(vcvarsPath)) {
     core.info(`Found VS 2015: ${vcvarsPath}`);
@@ -83,8 +79,6 @@ function isPathVariable(name) {
 
 function filterPathValue(pathValue) {
   let paths = pathValue.split(';');
-  // Remove duplicates by keeping the first occurance and preserving order.
-  // This keeps path shadowing working as intended.
   function unique(value, index, self) {
     return self.indexOf(value) === index;
   }
@@ -98,7 +92,6 @@ function isTruthyInput(value) {
   return normalized === 'true' || normalized === '1';
 }
 
-/** Split NAME=value on the first '=' so values containing '=' are preserved. */
 export function splitEnvLine(line) {
   const eq = line.indexOf('=');
   if (eq === -1) {
@@ -107,31 +100,23 @@ export function splitEnvLine(line) {
   return [line.slice(0, eq), line.slice(eq + 1)];
 }
 
-/** See https://github.com/ilammy/msvc-dev-cmd#inputs */
 export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   if (process.platform != 'win32') {
     core.info('This is not a Windows virtual environment, bye!');
     return;
   }
 
-  // Add standard location of "vswhere" to PATH, in case it's not there.
   process.env.PATH += path.delimiter + VSWHERE_PATH;
 
-  // There are all sorts of way the architectures are called. In addition to
-  // values supported by Microsoft Visual C++, recognize some common aliases.
   let arch_aliases = {
     win32: 'x86',
     win64: 'x64',
     x86_64: 'x64',
     'x86-64': 'x64',
   };
-  // Ignore case when matching as that's what humans expect.
   if (arch.toLowerCase() in arch_aliases) {
     arch = arch_aliases[arch.toLowerCase()];
   }
-
-  // Due to the way Microsoft Visual C++ is configured, we have to resort to the following hack:
-  // Call the configuration batch file and then output *all* the environment variables.
 
   var args = [arch];
   if (isTruthyInput(uwp)) {
@@ -151,9 +136,6 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   const vcvars = `"${vcvarsall}" ${args.join(' ')}`;
   core.debug(`vcvars command-line: ${vcvars}`);
 
-  // Derive installation path from the invoked script.
-  // vcvarsall.bat: ...\VC\Auxiliary\Build\vcvarsall.bat → three levels up.
-  // vcbuildtools.bat (VS 2015): use the script directory itself.
   const installationPath =
     path.basename(vcvarsall).toLowerCase() === 'vcbuildtools.bat'
       ? path.dirname(vcvarsall)
@@ -171,12 +153,8 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
   const vcvars_output = cmd_output_parts[1].split('\r\n');
   const new_environment = cmd_output_parts[2].split('\r\n');
 
-  // If vsvars.bat is given an incorrect command line, it will print out
-  // an error and *still* exit successfully. Parse out errors from output
-  // which don't look like environment variables, and fail if appropriate.
   const error_messages = vcvars_output.filter((line) => {
     if (line.match(/^\[ERROR.*\]/)) {
-      // Don't print this particular line which will be confusing in output.
       if (!line.match(/Error in script usage. The correct usage is:$/)) {
         return true;
       }
@@ -187,7 +165,6 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
     throw new Error('invalid parameters' + '\r\n' + error_messages.join('\r\n'));
   }
 
-  // Convert old environment lines into a dictionary for easier lookup.
   let old_env_vars = {};
   for (let string of old_environment) {
     const parts = splitEnvLine(string);
@@ -198,26 +175,16 @@ export function setupMSVCDevCmd(arch, sdk, toolset, uwp, spectre, vsversion) {
     old_env_vars[name] = value;
   }
 
-  // Now look at the new environment and export everything that changed.
-  // These are the variables set by vsvars.bat. Also export everything
-  // that was not there during the first sweep: those are new variables.
   core.startGroup('Environment variables');
   for (let string of new_environment) {
-    // vsvars.bat likes to print some fluff at the beginning.
-    // Skip lines that don't look like environment variables.
     const parts = splitEnvLine(string);
     if (!parts) {
       continue;
     }
     let [name, new_value] = parts;
     let old_value = old_env_vars[name];
-    // For new variables "old_value === undefined".
     if (new_value !== old_value) {
       core.info(`Setting ${name}`);
-      // Special case for a bunch of PATH-like variables: vcvarsall.bat
-      // just prepends its stuff without checking if its already there.
-      // This makes repeated invocations of this action fail after some
-      // point, when the environment variable overflows. Avoid that.
       if (isPathVariable(name)) {
         new_value = filterPathValue(new_value);
       }
