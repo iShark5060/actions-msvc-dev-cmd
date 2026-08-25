@@ -1,65 +1,21 @@
 # actions-msvc-dev-cmd
 
-GitHub Action for configuring the MSVC Developer Command Prompt on Windows runners.
+## Org standards
 
-## Architecture
+CI/README/validate conventions live in AppBase `docs/org-standards/` with personal-repo overrides (`personal-repos.md`). GitHub-hosted runners, not Blacksmith. Action-publish track: `release` event → build-and-tag. Quality gate: `pnpm run validate`.
 
-- `src/index.js` — entry point: read inputs and invoke setup
-- `src/lib.js` — MSVC environment setup and Windows-specific logic
-- `src/version.js` — Visual Studio version/year mapping helpers
-- `action.yml` — action metadata
-- `dist/index.cjs` — published CJS bundle (committed on release tags only)
+## Overview
 
-Source files use ESM (`"type": "module"`); the published bundle must stay **CJS** (`--format=cjs`).
+Configures the MSVC Developer Command Prompt on Windows runners (exports vcvars environment). Maintained fork of ilammy/msvc-dev-cmd. No-op on Linux/macOS. Inputs and usage: `README.md` / `action.yml`.
 
-## Core rules
+## Bundle and CI
 
-- Prefer narrow behavior fixes over structural churn.
-- Treat GitHub platform behavior and Windows runner images as distinct from action behavior.
-- Preserve the current vcvarsall-based setup flow unless there is strong evidence it needs to change.
-- Windows-only logic is hard to unit-test on Linux CI; rely on integration jobs for regression coverage.
+Source is ESM (`"type": "module"`); the published Action entry must stay **CJS** (`dist/index.cjs`). Do not switch the bundle to ESM. `dist/index.cjs` is only on release tags; consumers use `@v1`, not `@main`. CI builds/verifies the bundle and uploads it; integration jobs **download that artifact** before `uses: ./`. Do not require committing `dist/` on ordinary PRs.
 
-## Contract sync
+Prefer narrow fixes. Keep the vcvarsall-based `set && cls && …` env-capture flow unless there is strong evidence it must change. Windows-specific logic is hard to unit-test on Linux CI; rely on integration jobs.
 
-When behavior changes, update:
+## Environment
 
-- `README.md`
-- `action.yml`
-- tests under `tests/`
-- regenerate `dist/index.cjs` with `pnpm run build` on the release tag
+Re-exports only changed env vars. PATH-like values (`PATH`, `INCLUDE`, `LIB`, `LIBPATH`) are deduped so repeated invocations do not grow without bound. `shell: bash` on GitHub-hosted Windows can put GNU tools ahead of MSVC on `PATH` (classic `link.exe` “extra operand” failures). Prefer `cmd` / `pwsh` for compile steps after this action.
 
-## Verification
-
-```bash
-pnpm run validate
-pnpm run build
-```
-
-CI builds and verifies the bundle; it does not require committing `dist/index.cjs` on ordinary PRs. Integration jobs download the CI-built bundle before `uses: ./`.
-
-## Release
-
-1. Create a pre-release from `main`
-2. Verify the Release workflow completes
-3. Promote to a full release when ready
-
-## Engineering standards
-
-Follow AppBase `docs/org-standards/` with personal-repo overrides (`personal-repos.md`):
-
-- Runners: `ubuntu-latest` / `windows-latest`
-- Checkout: `actions/checkout@v7`
-- Node setup: `actions/setup-node@v7`
-- Quality gate: `pnpm run validate`
-
-## OpenWiki
-
-This repository has documentation located in the /openwiki directory.
-
-Start here:
-
-- [OpenWiki quickstart](openwiki/quickstart.md)
-
-OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
-
-When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
+VS 2026+ drops ARM32 targets (`amd64_arm` / `x86_arm`); use `amd64_arm64` / `x86_arm64` or pin an older image + `vsversion: 2022`. Year map includes `2026` → `18.0`.
