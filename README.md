@@ -115,7 +115,7 @@ On `windows-11-arm` runners, pass host/target forms that vcvarsall understands (
 
 ## Requirements
 
-- Node.js 24+
+- Node.js 26+
 - pnpm 12+
 
 ## Scripts
