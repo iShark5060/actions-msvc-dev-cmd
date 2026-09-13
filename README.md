@@ -5,7 +5,9 @@
 ![Node](https://img.shields.io/badge/Node-%3E%3D24-339933?logo=node.js&logoColor=white&style=flat-square)
 [![Cursor](https://img.shields.io/badge/Cursor-IDE-141414?logo=cursor&logoColor=white&style=flat-square)](https://cursor.com)
 
-Loads the MSVC Developer Command Prompt on Windows runners so `cl`, `nmake`, and CMake can find the toolchain. Maintained fork of [ilammy/msvc-dev-cmd](https://github.com/ilammy/msvc-dev-cmd). No-op on Linux and macOS.
+Load the MSVC Developer Command Prompt on Windows runners so `cl`, `nmake`, and CMake can find the toolchain. One step, then the rest of the job looks like a local Native Tools prompt.
+
+This is a maintained fork of [ilammy/msvc-dev-cmd](https://github.com/ilammy/msvc-dev-cmd) by ilammy (MIT License). NiTTY and 7-Zip CI depend on it. No-op on Linux and macOS.
 
 ```yaml
 - uses: iShark5060/actions-msvc-dev-cmd@v1
