@@ -20,21 +20,20 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: build-node26
     timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Setup pnpm and Node.js
-        uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3.0.0
-        with:
-          runtime: node@${{ env.NODE_VERSION }}
-          cache: true
-          require-lockfile: true
+      - name: Enable pnpm
+        run: npm install -g pnpm@12.6.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Validate
         run: pnpm run validate
@@ -56,7 +55,8 @@ jobs:
   integration:
     name: integration (${{ matrix.name }})
     needs: validate
-    runs-on: windows-latest
+    # This label is not registered until the Windows runner exists.
+    runs-on: windows-2025
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -93,7 +93,8 @@ jobs:
   cross-compile:
     name: cross-compile (${{ matrix.arch }})
     needs: validate
-    runs-on: windows-latest
+    # This label is not registered until the Windows runner exists.
+    runs-on: windows-2025
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -106,7 +107,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
