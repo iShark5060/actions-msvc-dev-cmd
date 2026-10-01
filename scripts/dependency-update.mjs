@@ -41,12 +41,17 @@ function pnpm(args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-
 function keepArtifactV3() {
   const file = path.join(workflowDir, 'ci.yml');
   const text = readFileSync(file, 'utf8')
-    .replace(/actions\/upload-artifact@\S+(?: # v[\d.]+)?/g, 'actions/upload-artifact@c6a366c94c3e0affe28c06c8df20a878f24da3cf # v3.2.2')
-    .replace(/actions\/download-artifact@\S+(?: # v[\d.]+)?/g, 'actions/download-artifact@a9bc5e6ef2cb54c177f32aa5726adaa15e7e2d59 # v3.1.0');
+    .replace(
+      /actions\/upload-artifact@\S+(?: # v[\d.]+)?/g,
+      'actions/upload-artifact@c6a366c94c3e0affe28c06c8df20a878f24da3cf # v3.2.2',
+    )
+    .replace(
+      /actions\/download-artifact@\S+(?: # v[\d.]+)?/g,
+      'actions/download-artifact@a9bc5e6ef2cb54c177f32aa5726adaa15e7e2d59 # v3.1.0',
+    );
   writeFileSync(file, text);
 }
 
@@ -113,14 +118,22 @@ async function main() {
   resetToMain();
   pnpm(['update', '--latest', '--prod', '--lockfile-only']);
   git(['checkout', '--', workflowDir]);
-  await publish('deps/production', 'chore(deps): update production dependencies', packagePaths.filter((file) => existsSync(file)));
+  await publish(
+    'deps/production',
+    'chore(deps): update production dependencies',
+    packagePaths.filter((file) => existsSync(file)),
+  );
 
   resetToMain();
   updateWithActions(['update', '--latest', '--dev', '--lockfile-only', '--include-github-actions']);
   keepArtifactV3();
   const actionsPatch = git(['diff', '--', workflowDir], { trim: false });
   git(['checkout', '--', workflowDir]);
-  await publish('deps/development', 'chore(deps): update development dependencies', packagePaths.filter((file) => existsSync(file)));
+  await publish(
+    'deps/development',
+    'chore(deps): update development dependencies',
+    packagePaths.filter((file) => existsSync(file)),
+  );
 
   resetToMain();
   if (!actionsPatch.trim()) {
