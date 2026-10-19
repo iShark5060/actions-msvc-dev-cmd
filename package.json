@@ -27,11 +27,11 @@
     "@actions/core": "^3.0.1"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^5.0.4",
+    "@vitest/coverage-v8": "^5.0.5",
     "esbuild": "^0.28.2",
     "oxfmt": "^0.73.0",
     "oxlint": "^1.88.0",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=26",
